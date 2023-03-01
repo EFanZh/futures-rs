@@ -11,6 +11,8 @@ where
     T: FnOnce(A) -> R,
 {
     type Output = R;
+
+    #[inline]
     fn call_once(self, arg: A) -> R {
         self(arg)
     }
@@ -24,6 +26,7 @@ impl<T, A, R> FnMut1<A> for T
 where
     T: FnMut(A) -> R,
 {
+    #[inline]
     fn call_mut(&mut self, arg: A) -> R {
         self(arg)
     }
@@ -39,6 +42,7 @@ impl<T, A, R> Fn1<A> for T
 where
     T: Fn(A) -> R,
 {
+    #[inline]
     fn call(&self, arg: A) -> R {
         self(arg)
     }
@@ -56,11 +60,13 @@ macro_rules! trivial_fn_impls {
             }
         }
         impl<$($arg,)* A> FnMut1<A> for $t where Self: FnOnce1<A> {
+            #[inline]
             fn call_mut(&mut self, arg: A) -> Self::Output {
                 self.call_once(arg)
             }
         }
         impl<$($arg,)* A> Fn1<A> for $t where Self: FnOnce1<A> {
+            #[inline]
             fn call(&self, arg: A) -> Self::Output {
                 self.call_once(arg)
             }
@@ -81,6 +87,8 @@ impl<E> Default for OkFn<E> {
 
 impl<A, E> FnOnce1<A> for OkFn<E> {
     type Output = Result<A, E>;
+
+    #[inline]
     fn call_once(self, arg: A) -> Self::Output {
         Ok(arg)
     }
@@ -97,6 +105,8 @@ where
     G: FnOnce1<F::Output>,
 {
     type Output = G::Output;
+
+    #[inline]
     fn call_once(self, arg: A) -> Self::Output {
         self.1.call_once(self.0.call_once(arg))
     }
@@ -106,6 +116,7 @@ where
     F: FnMut1<A>,
     G: FnMut1<F::Output>,
 {
+    #[inline]
     fn call_mut(&mut self, arg: A) -> Self::Output {
         self.1.call_mut(self.0.call_mut(arg))
     }
@@ -115,6 +126,7 @@ where
     F: Fn1<A>,
     G: Fn1<F::Output>,
 {
+    #[inline]
     fn call(&self, arg: A) -> Self::Output {
         self.1.call(self.0.call(arg))
     }
@@ -128,6 +140,8 @@ pub struct MergeResultFn;
 
 impl<T> FnOnce1<Result<T, T>> for MergeResultFn {
     type Output = T;
+
+    #[inline]
     fn call_once(self, arg: Result<T, T>) -> Self::Output {
         match arg {
             Ok(x) => x,
@@ -146,6 +160,8 @@ where
     F: for<'a> FnOnce1<&'a A, Output = ()>,
 {
     type Output = A;
+
+    #[inline]
     fn call_once(self, arg: A) -> Self::Output {
         self.0.call_once(&arg);
         arg
@@ -156,6 +172,7 @@ impl<F, A> FnMut1<A> for InspectFn<F>
 where
     F: for<'a> FnMut1<&'a A, Output = ()>,
 {
+    #[inline]
     fn call_mut(&mut self, arg: A) -> Self::Output {
         self.0.call_mut(&arg);
         arg
@@ -166,6 +183,7 @@ impl<F, A> Fn1<A> for InspectFn<F>
 where
     F: for<'a> Fn1<&'a A, Output = ()>,
 {
+    #[inline]
     fn call(&self, arg: A) -> Self::Output {
         self.0.call(&arg);
         arg
@@ -183,6 +201,8 @@ where
     F: FnOnce1<T>,
 {
     type Output = Result<F::Output, E>;
+
+    #[inline]
     fn call_once(self, arg: Result<T, E>) -> Self::Output {
         arg.map(|x| self.0.call_once(x))
     }
@@ -191,6 +211,7 @@ impl<F, T, E> FnMut1<Result<T, E>> for MapOkFn<F>
 where
     F: FnMut1<T>,
 {
+    #[inline]
     fn call_mut(&mut self, arg: Result<T, E>) -> Self::Output {
         arg.map(|x| self.0.call_mut(x))
     }
@@ -199,6 +220,7 @@ impl<F, T, E> Fn1<Result<T, E>> for MapOkFn<F>
 where
     F: Fn1<T>,
 {
+    #[inline]
     fn call(&self, arg: Result<T, E>) -> Self::Output {
         arg.map(|x| self.0.call(x))
     }
@@ -215,6 +237,8 @@ where
     F: FnOnce1<E>,
 {
     type Output = Result<T, F::Output>;
+
+    #[inline]
     fn call_once(self, arg: Result<T, E>) -> Self::Output {
         arg.map_err(|x| self.0.call_once(x))
     }
@@ -223,6 +247,7 @@ impl<F, T, E> FnMut1<Result<T, E>> for MapErrFn<F>
 where
     F: FnMut1<E>,
 {
+    #[inline]
     fn call_mut(&mut self, arg: Result<T, E>) -> Self::Output {
         arg.map_err(|x| self.0.call_mut(x))
     }
@@ -231,6 +256,7 @@ impl<F, T, E> Fn1<Result<T, E>> for MapErrFn<F>
 where
     F: Fn1<E>,
 {
+    #[inline]
     fn call(&self, arg: Result<T, E>) -> Self::Output {
         arg.map_err(|x| self.0.call(x))
     }
@@ -247,6 +273,8 @@ where
     F: FnOnce1<&'a T, Output = ()>,
 {
     type Output = ();
+
+    #[inline]
     fn call_once(self, arg: &'a Result<T, E>) -> Self::Output {
         if let Ok(x) = arg {
             self.0.call_once(x)
@@ -257,6 +285,7 @@ impl<'a, F, T, E> FnMut1<&'a Result<T, E>> for InspectOkFn<F>
 where
     F: FnMut1<&'a T, Output = ()>,
 {
+    #[inline]
     fn call_mut(&mut self, arg: &'a Result<T, E>) -> Self::Output {
         if let Ok(x) = arg {
             self.0.call_mut(x)
@@ -267,6 +296,7 @@ impl<'a, F, T, E> Fn1<&'a Result<T, E>> for InspectOkFn<F>
 where
     F: Fn1<&'a T, Output = ()>,
 {
+    #[inline]
     fn call(&self, arg: &'a Result<T, E>) -> Self::Output {
         if let Ok(x) = arg {
             self.0.call(x)
@@ -285,6 +315,8 @@ where
     F: FnOnce1<&'a E, Output = ()>,
 {
     type Output = ();
+
+    #[inline]
     fn call_once(self, arg: &'a Result<T, E>) -> Self::Output {
         if let Err(x) = arg {
             self.0.call_once(x)
@@ -295,6 +327,7 @@ impl<'a, F, T, E> FnMut1<&'a Result<T, E>> for InspectErrFn<F>
 where
     F: FnMut1<&'a E, Output = ()>,
 {
+    #[inline]
     fn call_mut(&mut self, arg: &'a Result<T, E>) -> Self::Output {
         if let Err(x) = arg {
             self.0.call_mut(x)
@@ -305,6 +338,7 @@ impl<'a, F, T, E> Fn1<&'a Result<T, E>> for InspectErrFn<F>
 where
     F: Fn1<&'a E, Output = ()>,
 {
+    #[inline]
     fn call(&self, arg: &'a Result<T, E>) -> Self::Output {
         if let Err(x) = arg {
             self.0.call(x)
@@ -316,6 +350,8 @@ pub(crate) fn inspect_err_fn<F>(f: F) -> InspectErrFn<F> {
 }
 
 pub(crate) type MapOkOrElseFn<F, G> = ChainFn<MapOkFn<F>, ChainFn<MapErrFn<G>, MergeResultFn>>;
+
+#[inline]
 pub(crate) fn map_ok_or_else_fn<F, G>(f: F, g: G) -> MapOkOrElseFn<F, G> {
     chain_fn(map_ok_fn(f), chain_fn(map_err_fn(g), merge_result_fn()))
 }
@@ -328,6 +364,8 @@ where
     F: FnOnce1<E, Output = T>,
 {
     type Output = T;
+
+    #[inline]
     fn call_once(self, arg: Result<T, E>) -> Self::Output {
         arg.unwrap_or_else(|x| self.0.call_once(x))
     }
@@ -336,6 +374,7 @@ impl<F, T, E> FnMut1<Result<T, E>> for UnwrapOrElseFn<F>
 where
     F: FnMut1<E, Output = T>,
 {
+    #[inline]
     fn call_mut(&mut self, arg: Result<T, E>) -> Self::Output {
         arg.unwrap_or_else(|x| self.0.call_mut(x))
     }
@@ -344,6 +383,7 @@ impl<F, T, E> Fn1<Result<T, E>> for UnwrapOrElseFn<F>
 where
     F: Fn1<E, Output = T>,
 {
+    #[inline]
     fn call(&self, arg: Result<T, E>) -> Self::Output {
         arg.unwrap_or_else(|x| self.0.call(x))
     }
@@ -355,6 +395,7 @@ pub(crate) fn unwrap_or_else_fn<F>(f: F) -> UnwrapOrElseFn<F> {
 pub struct IntoFn<T>(PhantomData<fn() -> T>);
 
 impl<T> Default for IntoFn<T> {
+    #[inline]
     fn default() -> Self {
         Self(PhantomData)
     }
@@ -364,6 +405,8 @@ where
     A: Into<T>,
 {
     type Output = T;
+
+    #[inline]
     fn call_once(self, arg: A) -> Self::Output {
         arg.into()
     }

@@ -56,6 +56,7 @@ pub mod __private {
 #[cfg(feature = "sink")]
 macro_rules! delegate_sink {
     ($field:ident, $item:ty) => {
+        #[inline]
         fn poll_ready(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -63,10 +64,12 @@ macro_rules! delegate_sink {
             self.project().$field.poll_ready(cx)
         }
 
+        #[inline]
         fn start_send(self: core::pin::Pin<&mut Self>, item: $item) -> Result<(), Self::Error> {
             self.project().$field.start_send(item)
         }
 
+        #[inline]
         fn poll_flush(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -74,6 +77,7 @@ macro_rules! delegate_sink {
             self.project().$field.poll_flush(cx)
         }
 
+        #[inline]
         fn poll_close(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -85,6 +89,7 @@ macro_rules! delegate_sink {
 
 macro_rules! delegate_future {
     ($field:ident) => {
+        #[inline]
         fn poll(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -96,12 +101,15 @@ macro_rules! delegate_future {
 
 macro_rules! delegate_stream {
     ($field:ident) => {
+        #[inline]
         fn poll_next(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
         ) -> core::task::Poll<Option<Self::Item>> {
             self.project().$field.poll_next(cx)
         }
+
+        #[inline]
         fn size_hint(&self) -> (usize, Option<usize>) {
             self.$field.size_hint()
         }
@@ -112,6 +120,7 @@ macro_rules! delegate_stream {
 #[cfg(feature = "std")]
 macro_rules! delegate_async_write {
     ($field:ident) => {
+        #[inline]
         fn poll_write(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -119,6 +128,8 @@ macro_rules! delegate_async_write {
         ) -> core::task::Poll<std::io::Result<usize>> {
             self.project().$field.poll_write(cx, buf)
         }
+
+        #[inline]
         fn poll_write_vectored(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -126,12 +137,16 @@ macro_rules! delegate_async_write {
         ) -> core::task::Poll<std::io::Result<usize>> {
             self.project().$field.poll_write_vectored(cx, bufs)
         }
+
+        #[inline]
         fn poll_flush(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
         ) -> core::task::Poll<std::io::Result<()>> {
             self.project().$field.poll_flush(cx)
         }
+
+        #[inline]
         fn poll_close(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -145,6 +160,7 @@ macro_rules! delegate_async_write {
 #[cfg(feature = "std")]
 macro_rules! delegate_async_read {
     ($field:ident) => {
+        #[inline]
         fn poll_read(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -153,6 +169,7 @@ macro_rules! delegate_async_read {
             self.project().$field.poll_read(cx, buf)
         }
 
+        #[inline]
         fn poll_read_vectored(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -167,6 +184,7 @@ macro_rules! delegate_async_read {
 #[cfg(feature = "std")]
 macro_rules! delegate_async_buf_read {
     ($field:ident) => {
+        #[inline]
         fn poll_fill_buf(
             self: core::pin::Pin<&mut Self>,
             cx: &mut core::task::Context<'_>,
@@ -174,6 +192,7 @@ macro_rules! delegate_async_buf_read {
             self.project().$field.poll_fill_buf(cx)
         }
 
+        #[inline]
         fn consume(self: core::pin::Pin<&mut Self>, amt: usize) {
             self.project().$field.consume(amt)
         }
@@ -184,6 +203,7 @@ macro_rules! delegate_access_inner {
     ($field:ident, $inner:ty, ($($ind:tt)*)) => {
         /// Acquires a reference to the underlying sink or stream that this combinator is
         /// pulling from.
+        #[inline]
         pub fn get_ref(&self) -> &$inner {
             (&self.$field) $($ind get_ref())*
         }
@@ -193,6 +213,7 @@ macro_rules! delegate_access_inner {
         ///
         /// Note that care must be taken to avoid tampering with the state of the
         /// sink or stream which may otherwise confuse this combinator.
+        #[inline]
         pub fn get_mut(&mut self) -> &mut $inner {
             (&mut self.$field) $($ind get_mut())*
         }
@@ -202,6 +223,7 @@ macro_rules! delegate_access_inner {
         ///
         /// Note that care must be taken to avoid tampering with the state of the
         /// sink or stream which may otherwise confuse this combinator.
+        #[inline]
         pub fn get_pin_mut(self: core::pin::Pin<&mut Self>) -> core::pin::Pin<&mut $inner> {
             self.project().$field $($ind get_pin_mut())*
         }
@@ -210,6 +232,7 @@ macro_rules! delegate_access_inner {
         ///
         /// Note that this may discard intermediate state of this combinator, so
         /// care should be taken to avoid losing resources when this is called.
+        #[inline]
         pub fn into_inner(self) -> $inner {
             self.$field $($ind into_inner())*
         }
@@ -226,6 +249,7 @@ macro_rules! delegate_all {
     };
     (@trait FusedFuture $name:ident < $($arg:ident),* > ($t:ty) $(where $($bound:tt)*)*) => {
         impl<$($arg),*> futures_core::future::FusedFuture for $name<$($arg),*> where $t: futures_core::future::FusedFuture $(, $($bound)*)* {
+            #[inline]
             fn is_terminated(&self) -> bool {
                 self.inner.is_terminated()
             }
@@ -240,6 +264,7 @@ macro_rules! delegate_all {
     };
     (@trait FusedStream $name:ident < $($arg:ident),* > ($t:ty) $(where $($bound:tt)*)*) => {
         impl<$($arg),*> futures_core::stream::FusedStream for $name<$($arg),*> where $t: futures_core::stream::FusedStream $(, $($bound)*)* {
+            #[inline]
             fn is_terminated(&self) -> bool {
                 self.inner.is_terminated()
             }
@@ -255,6 +280,7 @@ macro_rules! delegate_all {
     };
     (@trait Debug $name:ident < $($arg:ident),* > ($t:ty) $(where $($bound:tt)*)*) => {
         impl<$($arg),*> core::fmt::Debug for $name<$($arg),*> where $t: core::fmt::Debug $(, $($bound)*)* {
+            #[inline]
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 core::fmt::Debug::fmt(&self.inner, f)
             }
@@ -267,6 +293,7 @@ macro_rules! delegate_all {
     };
     (@trait New[|$($param:ident: $paramt:ty),*| $cons:expr] $name:ident < $($arg:ident),* > ($t:ty) $(where $($bound:tt)*)*) => {
         impl<$($arg),*> $name<$($arg),*> $(where $($bound)*)* {
+            #[inline]
             pub(crate) fn new($($param: $paramt),*) -> Self {
                 Self { inner: $cons }
             }
